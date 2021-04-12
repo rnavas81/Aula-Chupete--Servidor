@@ -1,0 +1,50 @@
+# Fichero de configuración para los contenedores del proyecto TFG DAW
+version: "3.8"
+services:
+  # Contenedor para la persistencia de datos
+  ei-db:
+    # Nombre asignado al contenedor
+    container_name: ei-db
+    # La imagen del contenedor está preparada en dockerhub
+    build: ./database
+    # Puerto de acceso
+    ports:
+      - 1003:3306
+    # Se utiliza un volumen para contener la base de datos.
+    volumes:
+      - ei-database:/var/lib/mysql
+    # TODO:descomentar para producción
+    # restart: always
+    # Red para la aplicación
+    networks:
+      - escuela-infantil
+    # Variables de entorno  para el contenedor
+    environment:
+      - MYSQL_ROOT_PASSWORD=LocalDev
+
+  # Contenedor para el servidor laravel
+  ei-server:
+    # Nombre asignado al contenedor
+    container_name: ei-server
+    # La imagen del contenedor se construye sobre una adecuando las necesidades
+    build: .
+    # Puerto de acceso
+    ports:
+      - 1002:80
+    # Se mapea la carpeta con una local
+    volumes:
+      - .:/var/www/html/
+    # TODO:descomentar para producción
+    # restart: always
+    # Red para la aplicación
+    networks:
+      - escuela-infantil
+    # Dependencias
+    depends_on:
+      - ei-db
+
+networks:
+  escuela-infantil:
+    driver: bridge
+volumes:
+  ei-database:
