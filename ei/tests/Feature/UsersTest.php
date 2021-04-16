@@ -20,6 +20,7 @@ class Users extends TestCase
         $response->assertStatus(200);
     }
 
+
     public function test_no_puede_recuperar_usuario_administrador()
     {
         $response = $this->get('/api/user/1');
@@ -30,11 +31,6 @@ class Users extends TestCase
     {
         $response = $this->get('/api/user/100');
         $response->assertStatus(204);
-    }
-    public function test_recupera_un_usuario()
-    {
-        $response = $this->get('/api/user/2');
-        $response->assertStatus(200);
     }
 
     public function test_insertar_usuario()
@@ -100,5 +96,14 @@ class Users extends TestCase
         $response = $this->delete('api/user/1');
         $response->assertStatus(200);
         DB::rollback();
+    }
+    public function test_login()
+    {
+        $response = $this->post('api/login', [
+            'password' => "admin",
+            'email' => 'aula.chupetes@gmail.com',
+        ]);
+        $response->assertStatus(200);
+
     }
 }
