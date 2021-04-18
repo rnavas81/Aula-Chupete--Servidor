@@ -11,10 +11,9 @@ use Illuminate\Support\Facades\DB;
 
 class Users extends Controller
 {
-    // Funciones para la API
+    /** FUNCIONES PARA LA API */
     public function getAll(Request $params)
     {
-
         $users = $this->getDB();
         return response()->json($users, 200);
     }
@@ -92,10 +91,10 @@ class Users extends Controller
         }
     }
 
-    // Funciones para la persistencia de datos
+    /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
     private function getDB($where = [], $take = false)
     {
-        $users = \App\Models\User::with('roles')->whereHas('roles', function (Builder $query) {
+        $users = \App\Models\User::with(['roles', 'aulas'])->whereHas('roles', function (Builder $query) {
             $query->where('idRol', '<>', '1');
         });
         if (array_key_exists("activated", $where)) {
@@ -190,7 +189,7 @@ class Users extends Controller
         User_Rol::insert($data);
     }
 
-    // Funciones extra
+    /** FUNCIONES EXTRA */
 
     /**
      * Recupera los datos enviados

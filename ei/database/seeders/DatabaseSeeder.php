@@ -30,8 +30,8 @@ class DatabaseSeeder extends Seeder
                 'idUser' => 1,
                 'idRol' => 1
             ]);
-            // Crea educadores
             for ($i = 2; $i < 12; $i++) {
+                // Crea educadores y padres
                 \App\Models\User::create([
                     'name' => $fak->firstName,
                     'lastName' => $fak->lastName,
@@ -45,6 +45,12 @@ class DatabaseSeeder extends Seeder
                     'idUser' => $i,
                     'idRol' => $i < 7 ? 2 : 3
                 ]);
+                if($i<7){
+                    \App\Models\Aula::create([
+                        'idUser'=>$i,
+                        'name'=>'20/21'
+                    ]);
+                }
             }
         }
     }

@@ -16,12 +16,16 @@ class User extends Authenticatable
         'lastname',
         'email',
         'password',
+        'activated',
+        'activated_token',
     ];
 
     protected $hidden = [
+        'updated_at',
         'password',
         'remember_token',
         'activated',
+        'activated_token',
         'blocked',
         'tries',
         'email_verified_at',
@@ -39,5 +43,9 @@ class User extends Authenticatable
     public function roles()
     {
         return $this->hasMany(User_Rol::class,'idUser','id');
+    }
+    public function aulas()
+    {
+        return $this->hasMany(Aula::class,'idUser','id');
     }
 }
