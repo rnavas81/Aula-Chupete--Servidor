@@ -11,6 +11,7 @@ class Aula extends Model
     protected $fillable = [
         'name',
         'idUser',
+        'default',
     ];
     protected $hidden = [
         'active',
