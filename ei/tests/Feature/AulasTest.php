@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AulasTest extends TestCase
 {
+    use WithoutMiddleware;
+
     public function test_recuperar_todas_las_aulas()
     {
         $response = $this->get('/api/aula');

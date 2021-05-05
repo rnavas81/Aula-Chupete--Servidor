@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use App\Http\Controllers\Mail\Activar;
 use App\Http\Controllers\Mail\Recuperar;
 use App\Models\User;
+use App\Models\User_Rol;
 
 class Authentication extends Controller
 {
@@ -26,9 +27,7 @@ class Authentication extends Controller
             return response()->noContent(403);
         }
         $nuevo = auth()->user();
-        //TODO:cambiar el token
-        // $accessToken = auth()->user()->createToken('authToken')->accessToken;
-        $accessToken = '';
+        $accessToken = auth()->user()->createToken('authToken')->accessToken;
         return response()->json(['user' => $nuevo, 'token' => $accessToken], 200);
     }
     /**
@@ -110,5 +109,22 @@ class Authentication extends Controller
             }
         }
         return response()->noContent(200);
+    }
+
+    public function getRol(Request $request)
+    {
+        $roles = User_Rol::where('idUser',auth()->user()->id)->pluck('idRol')->toArray();
+        if(in_array(1,$roles)){
+            return response()->json(['rol'=>'admin'],200);
+
+        } elseif(in_array(2,$roles)){
+            return response()->json(['rol'=>'teacher'],200);
+
+        } elseif(in_array(3,$roles)){
+            return response()->json(['rol'=>'parent'],200);
+
+        } else {
+            return response(403)->noContent();
+        }
     }
 }
