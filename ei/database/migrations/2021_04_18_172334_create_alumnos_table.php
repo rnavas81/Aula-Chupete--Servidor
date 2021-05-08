@@ -16,11 +16,15 @@ class CreateAlumnosTable extends Migration
         Schema::create('alumnos', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->tinyInteger('active')->default(1);
             $table->string('name');
-            $table->date('birthday');
-            $table->string('allergies');
-            $table->string('intolerances');
-            $table->string('diseases');
+            $table->string('lastname');
+            $table->tinyInteger('gender')->nullable();
+            $table->date('birthday')->nullable();
+            $table->string('allergies')->nullable();
+            $table->string('intolerances')->nullable();
+            $table->string('diseases')->nullable();
+            $table->string('observations')->nullable();
         });
     }
 

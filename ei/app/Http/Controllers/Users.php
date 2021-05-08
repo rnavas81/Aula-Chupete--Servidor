@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Aula;
 use App\Models\User;
 use App\Models\User_Rol;
 use Exception;
@@ -89,6 +90,19 @@ class Users extends Controller
         } else {
             return response()->noContent(406);
         }
+    }
+
+    /**
+     * Recupera las aulas asociadas al usuario $id
+     * @param Integer $id identificador del usuario, si es null se toma el usuario activo
+     */
+    public function getAulas(Request $request, $id = null)
+    {
+        if (!isset($id)) {
+            $id = auth()->user()->id;
+        }
+        $aulas = $this->getAulasDB($id);
+        return response()->json($aulas, 200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
@@ -188,11 +202,17 @@ class Users extends Controller
         }
         User_Rol::insert($data);
     }
+    /**
+     * Recupera de la base de datos las aulas de un usuario
+     */
+    public function getAulasDB($id){
+        return Aula::where('idUser',$id)->get();
+    }
 
     /** FUNCIONES EXTRA */
 
     /**
-     * Recupera los datos enviados
+     * Recupera los datos recibidos
      */
     public function getRequestData(Request $request)
     {

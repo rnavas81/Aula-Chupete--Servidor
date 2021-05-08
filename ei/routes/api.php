@@ -22,16 +22,16 @@ Route::group([], function () {
     ], function () {
         /** USERS */
         Route::post('/logout', [Authentication::class, 'logout']);
-        Route::post('/test',function (Request $params){
+        Route::post('/test', function (Request $params) {
             return response()->noContent(200);
         });
         // Recupera el rol del usuario logeado
         Route::get('/getRol', [Authentication::class, 'getRol']);
 
         // Recupera todos los usuarios
-        Route::get('/user',[Users::class,'getAll']);
+        Route::get('/user', [Users::class, 'getAll']);
         // Recupera los datos de un usuario
-        Route::get('/user/{id}',[Users::class,'get']);
+        Route::get('/user/{id}', [Users::class, 'get']);
         // Nueva usuario
         Route::post('/user', [Users::class, 'insert']);
         // Actualiza un usuario
@@ -40,20 +40,23 @@ Route::group([], function () {
         Route::delete('/user/{id}', [Users::class, 'delete']);
         // Activa un usuario
         Route::put('/user/activate/{id}', [Users::class, 'activate']);
+        //Recupera las aulas de un usuario
+        Route::get('/user/aulas/{id}', [Users::class, 'getAulas']);
 
 
         /** AULAS */
 
         // Recupera todas las aulas
-        Route::get('/aula',[Aulas::class,'getAll']);
+        Route::get('/aula', [Aulas::class, 'getAll']);
         // Recupera los datos de un usuario
-        Route::get('/aula/{id}',[Aulas::class,'get']);
+        Route::get('/aula/{id}', [Aulas::class, 'get']);
         // Nueva usuario
         Route::post('/aula', [Aulas::class, 'insert']);
         // Actualiza un usuario
         Route::put('/aula/{id}', [Aulas::class, 'update']);
         // Elimina un usuario
         Route::delete('/aula/{id}', [Aulas::class, 'delete']);
-
+        // Recupera los alumnos de un aula
+        Route::get('/aula/alumnos/{id}',[Aulas::class,'getAlumnos']);
     });
 });

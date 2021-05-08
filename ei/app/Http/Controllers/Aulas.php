@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alumno;
 use App\Models\Aula;
+use App\Models\Aula_Alumno;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +72,14 @@ class Aulas extends Controller
             return response()->noContent(406);
         }
     }
+    /**
+     * Recupera los alumnos de un aula
+     */
+    public function getAlumnos(Request $request, $id)
+    {
+        $alumnos = $this->getAlumnosDB($id);
+        return response()->json($alumnos,200);
+    }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
     private function getDB($where = [], $take = false)
@@ -119,6 +129,16 @@ class Aulas extends Controller
         return Aula::where('id', $id)->update([
             'active' => 0
         ]) == 1;
+    }
+
+    /**
+     * Recupera los alumnos de un aula de la base de datos
+     */
+    public function getAlumnosDB(Int $id)
+    {
+        return Alumno::whereHas('aulas',function($query)  use($id){
+            return $query->where('idAula',$id);
+        })->get();
     }
 
     /** FUNCIONES EXTRA */

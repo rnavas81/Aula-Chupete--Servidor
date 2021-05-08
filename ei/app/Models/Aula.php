@@ -23,4 +23,8 @@ class Aula extends Model
     {
         return $this->hasOne(User::class, 'id', 'idUser');
     }
+    public function alumnos()
+    {
+        return $this->hasMany(Aula_Alumno::class,'idAula','id');
+    }
 }

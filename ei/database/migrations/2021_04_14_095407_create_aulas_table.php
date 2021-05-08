@@ -17,10 +17,11 @@ class CreateAulasTable extends Migration
             $table->id();
             $table->timestamps();
             $table->tinyInteger('active')->default(1);
+            $table->tinyInteger('default')->default(1);
             $table->integer('idUser');
             $table->string('name');
-            $table->string('description')->nullable();
-            $table->tinyInteger('default')->default(0);
+            $table->year('year')->nullable();
+            $table->tinyInteger('age_range')->default(0);
         });
     }
 
