@@ -5,9 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\Aula_Alumno;
+use App\Models\Diario;
+use App\Models\Diario_Entrada;
 use Exception;
+use Faker\Core\Number;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Type\Integer;
 
 class Aulas extends Controller
 {
@@ -20,7 +24,7 @@ class Aulas extends Controller
     public function get($id)
     {
         if ($id == 0) return response()->noContent(204);
-        else $entrada = $this->getDB(['id' => $id], 1);
+        else $entrada = $this->getDB(['alumnos'], ['id' => $id], 1);
         if (!empty($entrada))
             return response()->json($entrada, 200);
         else
@@ -32,14 +36,22 @@ class Aulas extends Controller
         try {
             DB::beginTransaction();
             $data = $this->getRequestData($request);
+            $data['idUser'] = auth()->user()->id;
             $nuevo = $this->insertDB($data);
             if ($nuevo) {
+                if ($data['default'] == 1) {
+                    Aula::where('id', '!=', $nuevo->id)
+                        ->update(['default' => 0]);
+                }
+                $alumnos = isset($request['alumnos']) ? $request['alumnos'] : [];
+                $this->insertAlumnos($nuevo->id, $alumnos);
                 DB::commit();
                 return response()->json($nuevo, 201);
             } else {
-                throw new Exception("Error al crear nuevo usuario", 1);
+                throw new Exception('Error al crear nuevo usuario', 1);
             }
         } catch (\Throwable $th) {
+            dd($th);
             DB::rollBack();
             return response()->noContent(406);
         }
@@ -49,14 +61,21 @@ class Aulas extends Controller
         try {
             DB::beginTransaction();
             $data = $this->getRequestData($request);
-            $entrada = $this->updateDB($id, $data);
-            if ($entrada) {
+            if ($this->updateDB($id, $data)) {
+                if ($data['default'] == 1) {
+                    Aula::where('id', '!=', $id)
+                        ->update(['default' => 0]);
+                }
+                $alumnos = isset($request['alumnos']) ? $request['alumnos'] : [];
+                $this->insertAlumnos($id, $alumnos);
                 DB::commit();
+                $entrada = $this->getDB(['alumnos'], ['id' => $id], 1);
                 return response()->json($entrada, 201);
             } else {
-                throw new Exception("Error al modificar el aviso", 1);
+                throw new Exception('Error al modificar el aviso', 1);
             }
         } catch (\Throwable $th) {
+            dd($th);
             DB::rollBack();
             return response()->noContent(406);
         }
@@ -78,26 +97,90 @@ class Aulas extends Controller
     public function getAlumnos(Request $request, $id)
     {
         $alumnos = $this->getAlumnosDB($id);
-        return response()->json($alumnos,200);
+        return response()->json($alumnos, 200);
+    }
+    public function setDefault(Request $request, $id)
+    {
+        $this->setDefaultDB($id);
+        return response()->noContent(200);
+    }
+    public function getFaltas(Request $request, $id, $fecha)
+    {
+        $diario = Diario::with('entradas')->where('idAula', $id)->where('date', $fecha)->first()->toArray();
+        $ids = [];
+        foreach ($diario['entradas'] as $entrada) {
+            if ($entrada['absence'] == 1) $ids[] = $entrada['idAlumno'];
+        }
+        return response()->json($ids, 200);
+    }
+    public function getDiario($id, $fecha)
+    {
+        $diario = Diario::with('entradas')->where('idAula', $id)->where('date', $fecha)->first();
+        return response()->json($diario, 200);
+    }
+    public function setDiario(Request $request, $id, $fecha)
+    {
+        $data = $request->toArray();
+        $diario = Diario::where('idAula', $id)->where('date', $fecha)->first();
+        if ($diario) {
+            foreach ($data as $key => $value) {
+                $diario[$key] = $value;
+            }
+            $diario->save();
+        } else {
+            $data['idAula'] = $id;
+            $data['date'] = $fecha;
+            $diario = Diario::create($data);
+        }
+        return response()->json($diario, 200);
+    }
+    public function addAlumno($idAula, $idAlumno)
+    {
+        if ($this->addAlumnoDB($idAula, $idAlumno)) {
+            return response()->noContent(200);
+        } else {
+            return response()->noContent(406);
+        }
+    }
+    public function removeAlumno($idAula, $idAlumno)
+    {
+        if ($this->removeAlumnoDB($idAula, $idAlumno)) {
+            return response()->noContent(200);
+        } else {
+            return response()->noContent(406);
+        }
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
-    private function getDB($where = [], $take = false)
+    private function getDB($with = [], $where = [], $take = false)
     {
-        $classes = \App\Models\Aula::with(['users']);
-        if (array_key_exists("active", $where)) {
+
+        $classes = \App\Models\Aula::where('idUser', auth()->user()->id);
+        if (array_key_exists('active', $where)) {
             $classes = $classes->where('active', $where['active']);
         } else {
             $classes = $classes->where('active', 1);
         }
-        if (array_key_exists("id", $where)) $classes = $classes->where('id', $where['id']);
+        if (array_key_exists('id', $where)) $classes = $classes->where('id', $where['id']);
 
         if ($take === false) {
             $classes = $classes->get();
         } elseif ($take == 1) {
             $classes = $classes->first();
         } else {
-            $classes = $classes->take($take)->get();
+            $classes = $classes->take($take)->get()->toArray();
+        }
+        if (!!$classes) {
+            if (in_array('alumnos', $with)) {
+                if ($take == 1) {
+                    // $alumnos = \App\Models\Aula_Alumno::with('alumnos')->where('idAula',$classes['id'])->get()->toArray();
+                    $classes['alumnos'] = $this->getAlumnosDB($classes['id']);
+                } else {
+                    foreach ($classes as $key => $class) {
+                        $classes[$key]['alumnos'] = $this->getAlumnosDB($class['id']);
+                    }
+                }
+            }
         }
         return $classes;
     }
@@ -114,12 +197,14 @@ class Aulas extends Controller
      */
     public function updateDB($id, $data)
     {
+
         $update = Aula::where('id', $id)->where('active', 1)->update($data);
-        if ($update == 1) {
-            return $this->getDB(['id' => $id], 1);
-        } else {
-            return false;
-        }
+        return $update == 1;
+        // if ($update == 1) {
+        //     return $this->getDB(['alumnos'], ['id' => $id], 1);
+        // } else {
+        //     return false;
+        // }
     }
     /**
      * Elimina una entrada de la base de datos
@@ -136,9 +221,59 @@ class Aulas extends Controller
      */
     public function getAlumnosDB(Int $id)
     {
-        return Alumno::whereHas('aulas',function($query)  use($id){
-            return $query->where('idAula',$id);
-        })->get();
+        return Alumno::where('active', 1)
+            ->with('padres.padre')
+            ->whereHas('aulas', function ($query)  use ($id) {
+                return $query->where('idAula', $id);
+            })
+            ->orderBy('lastname')
+            ->orderBy('name')
+            ->get();
+    }
+    public function insertAlumnos($idAula, $alumnos)
+    {
+        Aula_Alumno::where('idAula', $idAula)->delete();
+        foreach ($alumnos as $item) {
+            $alumno = Alumno::where('id', $item['id'])->first();
+            if (!$alumno) {
+                unset($item['id']);
+                $item['owner'] = auth()->user()->id;
+                try {
+                    //code...
+                    $alumno = Alumno::create($item);
+                } catch (\Throwable $th) {
+                    //throw $th;
+                    dd($item, $th);
+                }
+            }
+            Aula_Alumno::create([
+                'idAula' => $idAula,
+                'idAlumno' => $alumno->id
+            ]);
+        }
+        return true;
+    }
+    public function setDefaultDB($idAula, $idUser = null)
+    {
+        if (!$idUser) $idUser = auth()->user()->id;
+        Aula::where('id', $idAula)
+            ->where('idUser', $idUser)
+            ->update(['default' => '1']);
+        Aula::where('id', '!=', $idAula)
+            ->where('idUser', $idUser)
+            ->update(['default' => '0']);
+        return true;
+    }
+    public function addAlumnoDB($idAula,$idAlumno){
+        Aula_Alumno::create([
+            'idAula'=>$idAula,'idAlumno'=>$idAlumno
+        ]);
+        return true;
+    }
+    public function removeAlumnoDB($idAula,$idAlumno)
+    {
+        Aula_Alumno::where('idAula',$idAula)->where('idAlumno',$idAlumno)->delete();
+        return true;
     }
 
     /** FUNCIONES EXTRA */
@@ -151,6 +286,9 @@ class Aulas extends Controller
         $data = [];
         if (isset($request['name'])) $data['name'] = $request['name'];
         if (isset($request['idUser'])) $data['idUser'] = $request['idUser'];
+        if (isset($request['default'])) $data['default'] = $request['default'];
+        if (isset($request['age_range'])) $data['age_range'] = $request['age_range'];
+        if (isset($request['year'])) $data['year'] = $request['year'];
 
         return $data;
     }

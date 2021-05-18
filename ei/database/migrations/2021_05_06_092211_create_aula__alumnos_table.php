@@ -14,8 +14,8 @@ class CreateAulaAlumnosTable extends Migration
     public function up()
     {
         Schema::create('aula_r_alumnos', function (Blueprint $table) {
-            $table->integer('idAula');
-            $table->integer('idAlumno');
+            $table->integer('idAula')->unsigned();
+            $table->integer('idAlumno')->unsigned();
         });
     }
 

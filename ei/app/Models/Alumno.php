@@ -9,14 +9,18 @@ class Alumno extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'owner',
         'name',
         'lastname',
+        'gender',
         'birthday',
         'allergies',
         'intolerances',
         'diseases',
+        'observations',
     ];
     protected $hidden = [
+        'owner',
         'active',
         'updated_at',
         'created_at',
@@ -24,5 +28,8 @@ class Alumno extends Model
     public function aulas()
     {
         return $this->hasMany(Aula_Alumno::class,'idAlumno','id');
+    }
+    public function padres(){
+        return $this->hasMany(Padre_Alumno::class,'idAlumno','id');
     }
 }

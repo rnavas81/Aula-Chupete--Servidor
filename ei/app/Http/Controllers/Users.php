@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\User;
 use App\Models\User_Rol;
@@ -41,7 +42,7 @@ class Users extends Controller
                 DB::commit();
                 return response()->json($nuevo, 201);
             } else {
-                throw new Exception("Error al crear nuevo usuario", 1);
+                throw new Exception('Error al crear nuevo usuario', 1);
             }
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -61,7 +62,7 @@ class Users extends Controller
                 DB::commit();
                 return response()->json($entrada, 201);
             } else {
-                throw new Exception("Error al modificar el aviso", 1);
+                throw new Exception('Error al modificar el usuario', 1);
             }
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -104,6 +105,35 @@ class Users extends Controller
         $aulas = $this->getAulasDB($id);
         return response()->json($aulas, 200);
     }
+    /**
+     * Recupera los alumnos de un usuario
+     */
+    public function getAlumnos($id = null)
+    {
+        if (!isset($id)) {
+            $id = auth()->user()->id;
+        }
+        $alumnos = $this->getAlumnosDB($id);
+        return response()->json($alumnos, 200);
+    }
+
+    public function verifyEmail($email)
+    {
+        $users = User::where('email', $email)->count();
+        if ($users == 0) return response()->noContent(200);
+        else return false;
+    }
+
+    public function getParents()
+    {
+        $users = User::where('owner', auth()->user()->id)
+        ->where('activated', 1)
+        ->where('blocked', 0)
+        ->whereHas('roles', function (Builder $query) {
+            $query->where('idRol', '3');
+        })->get();
+        return response()->json($users,200);
+    }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
     private function getDB($where = [], $take = false)
@@ -111,17 +141,17 @@ class Users extends Controller
         $users = \App\Models\User::with(['roles', 'aulas'])->whereHas('roles', function (Builder $query) {
             $query->where('idRol', '<>', '1');
         });
-        if (array_key_exists("activated", $where)) {
+        if (array_key_exists('activated', $where)) {
             $users = $users->where('activated', $where['activated']);
         } else {
             $users = $users->where('activated', 1);
         }
-        if (array_key_exists("blocked", $where)) {
+        if (array_key_exists('blocked', $where)) {
             $users = $users->where('blocked', $where['blocked']);
         } else {
             $users = $users->where('blocked', 0);
         }
-        if (array_key_exists("id", $where)) $users = $users->where('id', $where['id']);
+        if (array_key_exists('id', $where)) $users = $users->where('id', $where['id']);
 
         if ($take === false) {
             $users = $users->get();
@@ -205,10 +235,32 @@ class Users extends Controller
     /**
      * Recupera de la base de datos las aulas de un usuario
      */
-    public function getAulasDB($id){
-        return Aula::where('idUser',$id)->get();
+    public function getAulasDB($id)
+    {
+        return Aula::with('age')
+            ->where('idUser', $id)
+            ->where('active', 1)
+            ->orderBy('default', 'DESC')
+            ->orderBy('year', 'DESC')
+            ->get();
     }
-
+    /**
+     * Recupera los alumnos de un usuario
+     */
+    public function getAlumnosDB($id)
+    {
+        $alumnos = Alumno::where('owner', $id)
+            ->where('active', 1)
+            ->addSelect('*')
+            ->addSelect(DB::raw('DATE_FORMAT(birthday,\'%Y\') as year'))
+            ->orderBy('year', 'desc')
+            ->orderBy('lastname', 'asc')
+            ->get()->toArray();
+        foreach ($alumnos as $key => $alumno) {
+            unset($alumnos[$key]['year']);
+        }
+        return $alumnos;
+    }
     /** FUNCIONES EXTRA */
 
     /**

@@ -24,6 +24,8 @@ class CreateUsersTable extends Migration
             $table->string('activated_token')->nullable();
             $table->tinyInteger('blocked')->default(0);
             $table->tinyInteger('tries')->default(0);
+            $table->string('contact',32)->nullable();
+            $table->integer('owner')->default(0);
             $table->rememberToken();
             $table->timestamps();
         });

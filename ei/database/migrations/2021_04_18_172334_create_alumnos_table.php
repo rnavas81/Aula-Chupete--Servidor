@@ -17,6 +17,7 @@ class CreateAlumnosTable extends Migration
             $table->id();
             $table->timestamps();
             $table->tinyInteger('active')->default(1);
+            $table->integer('owner')->unsigned();
             $table->string('name');
             $table->string('lastname');
             $table->tinyInteger('gender')->nullable();

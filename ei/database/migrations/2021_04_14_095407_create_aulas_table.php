@@ -18,7 +18,7 @@ class CreateAulasTable extends Migration
             $table->timestamps();
             $table->tinyInteger('active')->default(1);
             $table->tinyInteger('default')->default(1);
-            $table->integer('idUser');
+            $table->integer('idUser')->unsigned();
             $table->string('name');
             $table->year('year')->nullable();
             $table->tinyInteger('age_range')->default(0);

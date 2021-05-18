@@ -12,6 +12,8 @@ class Aula extends Model
         'name',
         'idUser',
         'default',
+        'age_range',
+        'year',
     ];
     protected $hidden = [
         'active',
@@ -26,5 +28,13 @@ class Aula extends Model
     public function alumnos()
     {
         return $this->hasMany(Aula_Alumno::class,'idAula','id');
+    }
+    public function age()
+    {
+        return $this->hasOne(Auxiliary::class,'id','age_range')->where('type',1);
+    }
+    public function diarios($date)
+    {
+        return $this->hasMany(Diario::class,'idAula','id')->where('date',$date);
     }
 }

@@ -19,6 +19,8 @@ class User extends Authenticatable
         'password',
         'activated',
         'activated_token',
+        'contact',
+        'owner',
     ];
 
     protected $hidden = [
@@ -31,6 +33,7 @@ class User extends Authenticatable
         'tries',
         'email_verified_at',
         'created_at',
+        'owner',
     ];
 
     /**

@@ -27,6 +27,9 @@ class Authentication extends Controller
             return response()->noContent(403);
         }
         $nuevo = auth()->user();
+        if($nuevo->activated==0 || $nuevo->blocked==1){
+            return response()->noContent(402);
+        }
         $accessToken = auth()->user()->createToken('authToken')->accessToken;
         return response()->json(['user' => $nuevo, 'token' => $accessToken], 200);
     }
@@ -53,9 +56,10 @@ class Authentication extends Controller
         $request->validate([
             'name'     => 'required|string',
             'lastname'  => 'required|string',
-            'email'    => 'required|string|email|unique:users',
+            'email'    => 'required|string|email',
             'password' => 'required|string',
         ]);
+        // $user = User::where('email')
 
         $data = app(Users::class)->getRequestData($request);
         $data['password'] = bcrypt($data['password']);
@@ -77,6 +81,7 @@ class Authentication extends Controller
             $user->email_verified_at = time();
             $user->activated = 1;
             $user->activated_token = null;
+            $user->blocked = 0;
             $user->save();
             return redirect(env('APP_CLIENT'));
         } else {
