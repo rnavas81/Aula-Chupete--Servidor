@@ -37,6 +37,8 @@ Route::group([], function () {
         // Nueva usuario
         Route::post('/user', [Users::class, 'insert']);
         // Actualiza un usuario
+        Route::put('/user', [Users::class, 'update']);
+        // Actualiza un usuario
         Route::put('/user/{id}', [Users::class, 'update']);
         // Elimina un usuario
         Route::delete('/user/{id}', [Users::class, 'delete']);

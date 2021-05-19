@@ -16,12 +16,12 @@ use Illuminate\Support\Facades\DB;
 class Users extends Controller
 {
     /** FUNCIONES PARA LA API */
-    public function getAll(Request $params)
+    public function getAll()
     {
         $users = $this->getDB();
         return response()->json($users, 200);
     }
-    public function get(Request $request, $id)
+    public function get($id)
     {
         if ($id == 0) return response()->noContent(204);
         else $entrada = $this->getDB(['id' => $id], 1);
@@ -33,6 +33,13 @@ class Users extends Controller
 
     public function insert(Request $request)
     {
+        $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'lastname'  => ['string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'max:32'],
+            'contact' => ['string', 'max:32']
+        ]);
         try {
             $data = $this->getRequestData($request);
             DB::beginTransaction();
@@ -51,8 +58,16 @@ class Users extends Controller
             return response()->noContent(406);
         }
     }
-    public function update(Request $request, $id)
+    public function update(Request $request, $id = null)
     {
+        $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'lastname'  => ['string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users', 'max:255'],
+            'password' => ['string', 'min:8', 'max:32'],
+            'contact' => ['string', 'max:32']
+        ]);
+        $id != null or $id = auth()->user()->id;
         try {
             $data = $this->getRequestData($request);
             DB::beginTransaction();
@@ -74,7 +89,7 @@ class Users extends Controller
     /**
      * Elimina una entrada
      */
-    public function delete(Request $request, $id)
+    public function delete($id)
     {
         if ($this->deleteDB($id)) {
             return response()->noContent(200);
@@ -86,7 +101,7 @@ class Users extends Controller
     /**
      * Activa un usuario
      */
-    public function activate(Request $request, $id)
+    public function activate($id)
     {
         if ($this->activateDB($id)) {
             return response()->noContent(200);
@@ -99,7 +114,7 @@ class Users extends Controller
      * Recupera las aulas asociadas al usuario $id
      * @param Integer $id identificador del usuario, si es null se toma el usuario activo
      */
-    public function getAulas(Request $request, $id = null)
+    public function getAulas($id = null)
     {
         if (!isset($id)) {
             $id = auth()->user()->id;
@@ -129,22 +144,22 @@ class Users extends Controller
     public function getParents()
     {
         $users = User::where('owner', auth()->user()->id)
-        ->where('activated', 1)
-        ->where('blocked', 0)
-        ->whereHas('roles', function (Builder $query) {
-            $query->where('idRol', '3');
-        })->get();
-        return response()->json($users,200);
+            ->where('activated', 1)
+            ->where('blocked', 0)
+            ->whereHas('roles', function (Builder $query) {
+                $query->where('idRol', '3');
+            })->get();
+        return response()->json($users, 200);
     }
     public function getChilds()
     {
         $idPadre = auth()->user()->id;
-        $alumnos = Padre_Alumno::with('alumno')->where('idUser',$idPadre)->get();
+        $alumnos = Padre_Alumno::with('alumno')->where('idUser', $idPadre)->get();
         foreach ($alumnos as $key => $alumno) {
             $alumno = $alumno->alumno->toArray();
-            $alumnos[$key]=$alumno;
+            $alumnos[$key] = $alumno;
         }
-        return response()->json($alumnos,200);
+        return response()->json($alumnos, 200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
@@ -284,7 +299,8 @@ class Users extends Controller
         if (isset($request['name'])) $data['name'] = $request['name'];
         if (isset($request['lastname'])) $data['lastname'] = $request['lastname'];
         if (isset($request['email'])) $data['email'] = $request['email'];
-        if (isset($request['password'])) $data['password'] = $request['password'];
+        if (isset($request['password'])) $data['password'] = bcrypt($request['password']);
+        if (isset($request['contact'])) $data['contact'] = $request['contact'];
 
         return $data;
     }

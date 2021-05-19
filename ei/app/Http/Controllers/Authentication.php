@@ -9,6 +9,7 @@ use App\Http\Controllers\Mail\Activar;
 use App\Http\Controllers\Mail\Recuperar;
 use App\Models\User;
 use App\Models\User_Rol;
+use Illuminate\Support\Facades\Auth;
 
 class Authentication extends Controller
 {
@@ -19,15 +20,16 @@ class Authentication extends Controller
     {
         // TODO: Controlar el numero de intentos de acceso desde una ip
         $loginData = $request->validate([
-            'email' => 'required',
-            'password' => 'required'
+            'email' => ['required', 'max:255'],
+            'password' => ['required', 'unique:users', 'max:255'],
         ]);
-        if (!auth()->attempt($loginData)) {
+
+        if (!Auth::attempt($loginData)) {
             //return response(['message' => 'Login incorrecto. Revise las credenciales.'], 400);
             return response()->noContent(403);
         }
         $nuevo = auth()->user();
-        if($nuevo->activated==0 || $nuevo->blocked==1){
+        if ($nuevo->activated == 0 || $nuevo->blocked == 1) {
             return response()->noContent(402);
         }
         $accessToken = auth()->user()->createToken('authToken')->accessToken;
@@ -54,12 +56,11 @@ class Authentication extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string',
-            'lastname'  => 'required|string',
-            'email'    => 'required|string|email',
-            'password' => 'required|string',
+            'name'     => ['required', 'string', 'max:255'],
+            'lastname'  => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'max:32'],
         ]);
-        // $user = User::where('email')
 
         $data = app(Users::class)->getRequestData($request);
         $data['password'] = bcrypt($data['password']);
@@ -94,7 +95,7 @@ class Authentication extends Controller
     public function forget(Request $request)
     {
         $data = $request->validate([
-            'email' => 'email|required'
+            'email'    => ['required', 'email', 'unique:users', 'max:255'],
         ]);
 
         $user = User::where('email', $data['email'])->first();
@@ -118,16 +119,13 @@ class Authentication extends Controller
 
     public function getRol(Request $request)
     {
-        $roles = User_Rol::where('idUser',auth()->user()->id)->pluck('idRol')->toArray();
-        if(in_array(1,$roles)){
-            return response()->json(['rol'=>'admin'],200);
-
-        } elseif(in_array(2,$roles)){
-            return response()->json(['rol'=>'teacher'],200);
-
-        } elseif(in_array(3,$roles)){
-            return response()->json(['rol'=>'parent'],200);
-
+        $roles = User_Rol::where('idUser', auth()->user()->id)->pluck('idRol')->toArray();
+        if (in_array(1, $roles)) {
+            return response()->json(['rol' => 'admin'], 200);
+        } elseif (in_array(2, $roles)) {
+            return response()->json(['rol' => 'teacher'], 200);
+        } elseif (in_array(3, $roles)) {
+            return response()->json(['rol' => 'parent'], 200);
         } else {
             return response(403)->noContent();
         }
