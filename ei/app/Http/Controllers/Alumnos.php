@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Mail\ActivarPadre;
 use App\Models\Alumno;
 use App\Models\Aula_Alumno;
+use App\Models\Diario;
 use App\Models\Diario_Entrada;
 use App\Models\Padre_Alumno;
 use App\Models\User;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -27,10 +29,10 @@ class Alumnos extends Controller
         $alumnos = app(Users::class)->getAlumnosDB($id);
         return response()->json($alumnos, 200);
     }
-    public function get(Request $request, $id)
+    public function get(Request $request, $idAlumno)
     {
-        if ($id == 0) return response()->noContent(204);
-        else $entrada = $this->getDB(['id' => $id], 1);
+        if ($idAlumno == 0) return response()->noContent(204);
+        else $entrada = $this->getDB(['id' => $idAlumno], 1);
         if (!empty($entrada))
             return response()->json($entrada, 200);
         else
@@ -63,12 +65,12 @@ class Alumnos extends Controller
             return response()->noContent(406);
         }
     }
-    public function update(Request $request, $id)
+    public function update(Request $request, $idAlumno)
     {
         try {
             $data = $this->getRequestData($request);
             DB::beginTransaction();
-            $entrada = $this->updateDB($id, $data);
+            $entrada = $this->updateDB($idAlumno, $data);
             if ($entrada) {
                 if (isset($request['idAula'])) {
                     Aula_Alumno::create([
@@ -94,9 +96,9 @@ class Alumnos extends Controller
     /**
      * Elimina una entrada
      */
-    public function delete(Request $request, $id)
+    public function delete(Request $request, $idAlumno)
     {
-        if ($this->deleteDB($id)) {
+        if ($this->deleteDB($idAlumno)) {
             return response()->noContent(200);
         } else {
             return response()->noContent(406);
@@ -111,14 +113,35 @@ class Alumnos extends Controller
         $entrada = $this->setDiarioAlumnoDB($idDiario, $idAlumno, $data);
         return response()->json($entrada, 200);
     }
-    public function getDiario(Request $request, $id, $diario)
+    public function getDiario($idAlumno, $idAula, $fecha)
     {
+        // Recupera los diarios de las aulas de un alumno en una fecha
+        $diario = Diario::where('idAula',$idAula)->where('date',$fecha)->first();
+        if($diario){
+            $entrada = Diario_Entrada::where('idDiario',$diario['id'])
+                ->where('idAlumno',$idAlumno)
+                ->first();
+            $diario['entrada']=$entrada?$entrada->toArray():null;
+
+        }
+        return response()->json($diario,200);
     }
-    public function setDiario(Request $request, $id, $diario)
+    public function setDiario(Request $request, $idAlumno, $diario)
     {
         $data = $request->toArray();
-        $entrada = $this->setDiarioAlumnoDB($diario, $id, $data);
+        $entrada = $this->setDiarioAlumnoDB($diario, $idAlumno, $data);
         return response()->json($entrada, 200);
+    }
+
+    public function getAulas($idAlumno)
+    {
+        $aulas = Aula_Alumno::with('aula')->whereHas('aula',function(Builder $query){
+            $query->orderBy('default','desc')->orderBy('year','desc');
+        })->where('idAlumno',$idAlumno)->get();
+        foreach ($aulas as $key => $aula) {
+            $aulas[$key]=$aula->aula;
+        }
+        return response()->json($aulas,200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */

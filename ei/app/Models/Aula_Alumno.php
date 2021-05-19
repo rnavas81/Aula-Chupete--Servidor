@@ -16,7 +16,7 @@ class Aula_Alumno extends Model
     ];
     public function aula()
     {
-        return $this->hasOne(Aula::class,'idAula','id');
+        return $this->hasOne(Aula::class,'id','idAula');
     }
     public function alumnos()
     {

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Aula;
+use App\Models\Aula_Alumno;
+use App\Models\Padre_Alumno;
 use App\Models\User;
 use App\Models\User_Rol;
 use Exception;
@@ -133,6 +135,16 @@ class Users extends Controller
             $query->where('idRol', '3');
         })->get();
         return response()->json($users,200);
+    }
+    public function getChilds()
+    {
+        $idPadre = auth()->user()->id;
+        $alumnos = Padre_Alumno::with('alumno')->where('idUser',$idPadre)->get();
+        foreach ($alumnos as $key => $alumno) {
+            $alumno = $alumno->alumno->toArray();
+            $alumnos[$key]=$alumno;
+        }
+        return response()->json($alumnos,200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */

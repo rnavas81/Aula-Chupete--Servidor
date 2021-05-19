@@ -24,6 +24,6 @@ class Padre_Alumno extends Model
     }
     public function alumno()
     {
-        return $this->hasOne(Alumno::class,'idAlumno','id');
+        return $this->hasOne(Alumno::class,'id','idAlumno');
     }
 }

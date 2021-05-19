@@ -51,6 +51,8 @@ Route::group([], function () {
         Route::get('/user/email/{email}',[Users::class,'verifyEmail']);
         // Recupera los padres existentes
         Route::get('user/parents',[Users::class,'getParents']);
+        // Recupera los hijos del usuario activo
+        Route::get('user/childs',[Users::class,'getChilds']);
 
 
         /** AULAS */
@@ -82,20 +84,22 @@ Route::group([], function () {
 
         // Recupera todas las aulas
         Route::get('/alumno', [Alumnos::class, 'getAll']);
-        // Recupera los datos de un usuario
-        Route::get('/alumno/{id}', [Alumnos::class, 'get']);
-        // Nueva usuario
+        // Recupera los datos de un alumno
+        Route::get('/alumno/{idAlumno}', [Alumnos::class, 'get']);
+        // Nueva alumno
         Route::post('/alumno', [Alumnos::class, 'insert']);
-        // Actualiza un usuario
-        Route::put('/alumno/{id}', [Alumnos::class, 'update']);
-        // Elimina un usuario
-        Route::delete('/alumno/{id}', [Alumnos::class, 'delete']);
+        // Actualiza un alumno
+        Route::put('/alumno/{idAlumno}', [Alumnos::class, 'update']);
+        // Elimina un alumno
+        Route::delete('/alumno/{idAlumno}', [Alumnos::class, 'delete']);
         //Asigna falta a un alumno
         Route::post('/alumno/falta', [Alumnos::class, 'setFalta']);
-        // Recupera los datos de un usuario
-        Route::get('/alumno/{id}/diario/{dario}', [Alumnos::class, 'getDiario']);
+        // Recupera los datos de un alumno
+        Route::get('/alumno/{idAlumno}/aula/{idAula}/diario/{fecha}', [Alumnos::class, 'getDiario']);
         // Asigna datos al diario de un alumno
-        Route::post('/alumno/{id}/diario/{dario}', [Alumnos::class, 'setDiario']);
+        Route::post('/alumno/{idAlumno}/diario/{diario}', [Alumnos::class, 'setDiario']);
+        // Recupera las aulas de un alumno
+        Route::get('/alumno/{idAlumno}/aulas', [Alumnos::class, 'getAulas']);
 
         /** AUXILIAR */
         Route::get('/auxiliar/ageRange',[Auxiliaries::class,'getAgeRange']);
