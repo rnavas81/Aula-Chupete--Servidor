@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Models\Auxiliary;
 use App\Models\Diario;
 use App\Models\Diario_Entrada;
+use App\Models\Dietario;
+use App\Models\Menu;
+use App\Models\Menu_Dia;
 use Database\Seeders\Auxiliary as SeedersAuxiliary;
 use DateInterval;
 use DateTime;
@@ -47,23 +50,50 @@ class DatabaseSeeder extends Seeder
                 'activated' => 1,
                 'blocked' => 0,
             ]);
-            // Crea aulas para el educador de prueba
-            $aula = $this->crearAula($user->id, 3, $fak);
-            // Crea los alumnos para el aula
-            $alumnos = [];
-            for ($i = 0; $i < 5; $i++) {
-                // Crea el alumno
-                $alumno = $this->crearAlumno($user->id, $aula, $i, $fak);
-                $lastnames = explode(" ", $alumno->lastname);
-                $this->crearPadre($user->id, $alumno->id, $lastnames[0], $fak);
-                if ($alumno->id > 1 && rand(0, 100) > 35) {
-                    $this->crearPadre($user->id, $alumno->id, $lastnames[1], $fak);
-                }
-                $alumnos[] = $alumno->id;
+            $padres = [];
+            $posicion = 0;
+            for ($i = 0; $i < 6; $i++) {
+                $padre = $this->crearPadre($user->id, $fak, $i == 0 ? "padre" : false);
+                $padre1 = $this->crearPadre($user->id, $fak, $i == 0 ? "madre" : false);
+                $padres[] = [$padre, $padre1];
             }
-            // Crea diarios para el aula
-            $this->crearDiario($aula, $alumnos, $fak);
-            for ($i = 1; $i < 5; $i++) {
+            for ($n = 1; $n < 7; $n++) {
+                if($n==1 || $n==5){
+                    $posicion = 0;
+                    $alumnos = [];
+                    for ($i = 0; $i < 6; $i++) {
+                        // Escoger padres
+                        $padre1 = $padres[$posicion][0];
+                        $padre2 = $padres[$posicion][1];
+                        $lastnames = $padre1->lastname . " " . $padre2->lastname;
+                        // Crea el alumno
+                        $birthday = $fak->dateTimeBetween('2018-1-1','2018-12-31');
+                        $alumno = $this->crearAlumno($user->id, $birthday, $fak, $lastnames);
+                        $alumnos[] = $alumno->id;
+                        $this->relacionAlumnoPadre($padre1, $alumno->id);
+                        $this->relacionAlumnoPadre($padre2, $alumno->id);
+                        if($posicion==count($padres))$posicion=0;
+                        else $posicion+=1;
+                    }
+                }
+                // Crea aulas para el educador de prueba
+                $aula = $this->crearAula($user->id, $n, $fak, $n == 1);
+                foreach ($alumnos as $idAlumno) {
+                    $this->relacionAlumnoAula($aula->id,$idAlumno);
+                }
+                // Crea diarios para el aula
+                $this->crearDiario($aula, $alumnos, $fak);
+                // Crea Menús
+                for ($i = 0; $i < 4; $i++) {
+                    $this->crearMenu('Menú ' . $i, $user);
+                }
+                // Crea Dietarios
+                $this->crearDietario($aula);
+            }
+
+            ///////////////////////////////////////////
+            // Crea más datos de prueba
+            for ($i = 1; $i < 2; $i++) {
                 // Crea educadores
                 $user = $this->crearEducador($fak);
                 // Crea el aula
@@ -71,18 +101,24 @@ class DatabaseSeeder extends Seeder
                 // Crea los alumnos
                 $alumnos = [];
                 for ($j = 0; $j < 5; $j++) {
-                    // Crea el alumno
-                    $alumno = $this->crearAlumno($user->id, $aula, $j, $fak);
-                    $lastnames = explode(' ', $alumno->lastname);
                     // Crea padres para el alumno
-                    $this->crearPadre($user->id, $alumno->id, $lastnames[0], $fak);
-                    if (rand(0, 100) > 35) {
-                        $this->crearPadre($user->id, $alumno->id, $lastnames[1], $fak);
-                    }
+                    $padre1 = $this->crearPadre($user->id, $fak);
+                    $padre2 = $this->crearPadre($user->id, $fak);
+                    $lastnames = $padre1->lastname . " " . $padre2->lastname;
+                    // Crea el alumno
+                    $birthday = $fak->dateTimeBetween($aula->year.'-1-1',$aula->year.'-12-31');
+                    $alumno = $this->crearAlumno($user->id, $birthday, $fak, $lastnames);
+                    $this->relacionAlumnoAula($aula->id,$alumno->id);
                     $alumnos[] = $alumno->id;
+                    $this->relacionAlumnoPadre($padre1, $alumno->id);
+                    $this->relacionAlumnoPadre($padre2, $alumno->id);
                 }
                 // Crea diarios para el aula
                 $this->crearDiario($aula, $alumnos, $fak);
+                // Crea menú
+                $this->crearMenu('Mi Menú', $user);
+                // Crea dietarios para el aula
+                $this->crearDietario($aula);
             }
         }
     }
@@ -116,11 +152,11 @@ class DatabaseSeeder extends Seeder
         return $user;
     }
     // Crea el aula
-    private function crearAula($idUser, $curso, $fak)
+    private function crearAula($idUser, $curso, $fak, $default = false)
     {
-        $curso = 2020 - $curso;
+        $curso = 2021 - $curso;
         $aula = \App\Models\Aula::create([
-            'default' => 1,
+            'default' => $default ? 1 : 0,
             'idUser' => $idUser,
             'name' => 'Aula ' . $curso,
             'year' => $curso,
@@ -131,42 +167,40 @@ class DatabaseSeeder extends Seeder
     /**
      * Crea un alumno
      */
-    public function crearAlumno($owner, $aula, $i, $fak)
+    public function crearAlumno($owner, $birthday, $fak, $lastnames = false)
     {
-        $lastname1 = $fak->lastName;
-        $lastname2 = $fak->lastName;
+        $genero = rand(0, 100) > 50 ? 1 : 2;
         $alumno = \App\Models\Alumno::create([
-            'name' => $i % 2 == 0 ? $fak->firstNameMale : $fak->firstNameFemale,
-            'lastname' => $lastname1 . " " . $lastname2,
-            'birthday' => $fak->dateTimeBetween($aula->year . '-1-1', $aula->year . '-12-31'),
-            'gender' => $i % 2 == 0 ? 1 : 2,
+            'name' => $genero == 1 ? $fak->firstNameMale : $fak->firstNameFemale,
+            'lastname' => $lastnames,
+            'birthday' => $birthday,
+            'gender' => $genero,
             'owner' => $owner,
         ]);
+        return $alumno;
+    }
+    public function relacionAlumnoAula($idAula,$idAlumno)
+    {
         // Crea la relación con el aula
         \App\Models\Aula_Alumno::create([
-            'idAula' => $aula->id,
-            'idAlumno' => $alumno->id,
+            'idAula' => $idAula,
+            'idAlumno' => $idAlumno,
         ]);
-        return $alumno;
     }
     /**
      * Crea un padre para un alumno
      */
-    public function crearPadre($owner, $idAlumno, $lastname, $fak)
+    public function crearPadre($owner, $fak, $name = false)
     {
-        if($idAlumno != 1){
+        if (!$name) {
             $name = rand(0, 100) % 2 == 0 ? $fak->firstNameMale : $fak->firstNameFemale;
             $email =  $fak->email;
         } else {
-            $email =  'padre@test.com';
-            $name = 'Padre';
-            $lastname = 'Test';
-
+            $email = "$name@test.com";
         }
-        $email = $idAlumno != 1 ? $fak->email : 'padre@test.com';
         $padre = \App\Models\User::create([
             'name' => $name,
-            'lastname' => $lastname,
+            'lastname' => $fak->lastName,
             'password' => bcrypt('123'),
             'email' => $email,
             'email_verified_at' => now(),
@@ -179,18 +213,25 @@ class DatabaseSeeder extends Seeder
             'idUser' => $padre->id,
             'idRol' => 3
         ]);
+        return $padre;
+    }
+    public function relacionAlumnoPadre($padre, $idAlumno)
+    {
         \App\Models\Padre_Alumno::create([
             'idUser' => $padre->id,
             'idAlumno' => $idAlumno
         ]);
-        return $padre;
     }
+    /**
+     * Crear un diario para cada alumno del aula
+     */
     public function crearDiario($aula, $alumnos, $fak)
     {
-
-        $fecha = new DateTime();
-        $fecha->sub(new DateInterval('P1M'));
-        while ($fecha < new DateTime()) {
+        $year = intval($aula->year);
+        $fecha = new DateTime("$year-09-01");
+        $fecha_fin = new DateTime(($year+1)."-08-1");
+        if($fecha_fin>new DateTime())$fecha_fin=new DateTime();
+        while ($fecha < $fecha_fin) {
             if ($fecha->format('N') < 6) {
                 $diario = Diario::create([
                     'idAula' => $aula->id,
@@ -224,5 +265,63 @@ class DatabaseSeeder extends Seeder
 
             $fecha->add(new DateInterval('P1D'));
         }
+    }
+    public function crearDietario($aula)
+    {
+        $faker = \Faker\Factory::create();
+        $faker->addProvider(new \FakerRestaurant\Provider\es_PE\Restaurant($faker));
+        $year = intval($aula->year);
+        $fecha = new DateTime("$year-09-01");
+        $fecha_fin = new DateTime(($year+1)."-08-1");
+        if($fecha_fin>new DateTime())$fecha_fin=new DateTime();
+        while ($fecha < $fecha_fin) {
+            if ($fecha->format('N') < 6) {
+                $a1 =  [];
+                while (count($a1) < 3) {
+                    $i = rand(1, 14);
+                    if (!in_array($i, $a1)) $a1[] = $i;
+                }
+                Dietario::create([
+                    'idAula' => $aula->id,
+                    'date' => $fecha,
+                    'breakfast' => 'Leche con galletas',
+                    'breakfast_allergens' => '3,5',
+                    'lunch' => $faker->foodName(),
+                    'lunch_allergens' => implode(",", $a1),
+                    'desert' => $faker->fruitName(),
+                    'desert_allergens' => '3',
+                ]);
+            }
+            $fecha->add(new DateInterval('P1D'));
+        }
+    }
+    public function crearMenu($name, $owner)
+    {
+        $faker = \Faker\Factory::create();
+        $faker->addProvider(new \FakerRestaurant\Provider\es_PE\Restaurant($faker));
+        //Crea el menú
+        $menu = Menu::create([
+            'name' => $name,
+            'owner' => $owner->id,
+        ]);
+        // Crea las entradas para el menú
+        for ($i = 1; $i < 6; $i++) {
+            $a1 =  [];
+            while (count($a1) < 3) {
+                $n = rand(1, 14);
+                if (!in_array($n, $a1)) $a1[] = $i;
+            }
+            $dia = Menu_Dia::create([
+                'idMenu' => $menu->id,
+                'dia' => $i,
+                'breakfast' => 'Leche con galletas',
+                'breakfast_allergens' => '3,5',
+                'lunch' => $faker->foodName(),
+                'lunch_allergens' => implode(",", $a1),
+                'desert' => $faker->fruitName(),
+                'desert_allergens' => '3',
+            ]);
+        }
+        return $menu;
     }
 }

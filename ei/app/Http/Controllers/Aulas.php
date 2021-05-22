@@ -7,6 +7,10 @@ use App\Models\Aula;
 use App\Models\Aula_Alumno;
 use App\Models\Diario;
 use App\Models\Diario_Entrada;
+use App\Models\Dietario;
+use App\Models\Menu_Dia;
+use DateInterval;
+use DateTime;
 use Exception;
 use Faker\Core\Number;
 use Illuminate\Http\Request;
@@ -51,7 +55,6 @@ class Aulas extends Controller
                 throw new Exception('Error al crear nuevo usuario', 1);
             }
         } catch (\Throwable $th) {
-            dd($th);
             DB::rollBack();
             return response()->noContent(406);
         }
@@ -149,6 +152,70 @@ class Aulas extends Controller
         } else {
             return response()->noContent(406);
         }
+    }
+
+    public function getDietarioSemana($idAula, $fecha)
+    {
+        $f = new DateTime($fecha);
+        $dietario = [];
+        while ($f->format('N') < 6) {
+            $dietario[] = $this->getDietarioDiaDB($idAula, $f);
+            $f->add(new DateInterval('P1D'));
+        }
+        return response()->json($dietario, 200);
+    }
+    public function getDietarioDia($idAula, $fecha)
+    {
+        $dieta = $this->getDietarioDiaDB($idAula, $fecha);
+        return response()->json($dieta, 200);
+    }
+    public function getDietarioDiaDB($idAula, $fecha)
+    {
+        $dieta = Dietario::where('idAula', $idAula)->where('date', $fecha)->first();
+        if ($dieta) {
+            if (strlen($dieta->breakfast_allergens) > 0) $dieta->breakfast_allergens = explode(',', $dieta->breakfast_allergens);
+            else $dieta->breakfast_allergens = [];
+            if (strlen($dieta->lunch_allergens) > 0) $dieta->lunch_allergens = explode(',', $dieta->lunch_allergens);
+            else $dieta->lunch_allergens = [];
+            if (strlen($dieta->desert_allergens) > 0) $dieta->desert_allergens = explode(',', $dieta->desert_allergens);
+            else $dieta->desert_allergens = [];
+        }
+        return $dieta;
+    }
+
+    public function setDietarioComida(Request $request, $idAula)
+    {
+        $request->validate([
+            'id'     => ['required', 'integer'],
+            'comida' => ['required', 'string', 'max:255'],
+            'plato'  => ['string', 'max:500'],
+            'date'  => ['required', 'date'],
+        ]);
+        $id = $request['id'];
+        $data = [
+            'idAula' => $idAula,
+            'date' => $request['date'],
+            $request['comida'] => $request['plato'],
+            $request['comida'] . '_allergens' => isset($request['alergenos']) ? implode(',', $request['alergenos']) : ''
+        ];
+        $entrada = $this->setDietarioComidaDB($id, $data);
+        return response()->json($entrada, 200);
+    }
+
+    public function setMenu(Request $request, $idAula)
+    {
+        $request->validate([
+            'idMenu'     => ['required', 'integer'],
+            'date'  => ['required', 'date'],
+        ]);
+        $this->setMenuDB($idAula, $request['date'], $request['idMenu']);
+        $f = new DateTime($request['date']);
+        $dietario = [];
+        while ($f->format('N') < 6) {
+            $dietario[] = $this->getDietarioDiaDB($idAula, $f);
+            $f->add(new DateInterval('P1D'));
+        }
+        return response()->json($dietario, 200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
@@ -264,16 +331,43 @@ class Aulas extends Controller
             ->update(['default' => '0']);
         return true;
     }
-    public function addAlumnoDB($idAula,$idAlumno){
+    public function addAlumnoDB($idAula, $idAlumno)
+    {
         Aula_Alumno::create([
-            'idAula'=>$idAula,'idAlumno'=>$idAlumno
+            'idAula' => $idAula, 'idAlumno' => $idAlumno
         ]);
         return true;
     }
-    public function removeAlumnoDB($idAula,$idAlumno)
+    public function removeAlumnoDB($idAula, $idAlumno)
     {
-        Aula_Alumno::where('idAula',$idAula)->where('idAlumno',$idAlumno)->delete();
+        Aula_Alumno::where('idAula', $idAula)->where('idAlumno', $idAlumno)->delete();
         return true;
+    }
+
+    public function setDietarioComidaDB($id, $data)
+    {
+        $result = Dietario::where('id', $id)->update($data);
+        if ($result == 0) {
+            $dieta = Dietario::create($data);
+        } else $dieta = $this->getDietarioDiaDB($data['idAula'], $data['date']);
+        return $dieta;
+    }
+
+    public function setMenuDB($idAula, $fecha, $idMenu)
+    {
+        $data = Menu_Dia::where('idMenu', $idMenu)->orderBy('dia', 'ASC')->get(['breakfast', 'breakfast_allergens', 'lunch', 'lunch_allergens', 'desert', 'desert_allergens'])->toArray();
+        $f = new DateTime($fecha);
+        $cont = 0;
+        while ($f->format('N') < 6) {
+            $result = Dietario::where('idAula', $idAula)->where('date', $f)->update($data[$cont]);
+            if ($result == 0) {
+                $data[$cont]['idAula'] = $idAula;
+                $data[$cont]['date'] = $f;
+                Dietario::create($data[$cont]);
+            }
+            $f->add(new DateInterval('P1D'));
+            $cont++;
+        }
     }
 
     /** FUNCIONES EXTRA */

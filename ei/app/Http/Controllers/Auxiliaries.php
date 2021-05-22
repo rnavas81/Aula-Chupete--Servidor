@@ -17,4 +17,9 @@ class Auxiliaries extends Controller
         $data = Auxiliary::where('type',2)->get();
         return response()->json($data,200);
     }
+    public function getAllergens()
+    {
+        $data = Auxiliary::where('type',3)->get();
+        return response()->json($data,200);
+    }
 }

@@ -15,36 +15,53 @@ class Auxiliary extends Seeder
     public function run()
     {
         // Agrega los rangos de edad
-        ModelsAuxiliary::create([
-            'type'=>1,
-            'id'=>1,
-            'value'=>'mixto'
-        ]);
-        ModelsAuxiliary::create([
-            'type'=>1,
-            'id'=>2,
-            'value'=>'0-1 años'
-        ]);
-        ModelsAuxiliary::create([
-            'type'=>1,
-            'id'=>3,
-            'value'=>'1-2 años'
-        ]);
-        ModelsAuxiliary::create([
-            'type'=>1,
-            'id'=>4,
-            'value'=>'2-3 años'
-        ]);
+        $rangos = [
+            'mixto',
+            '0-1 años',
+            '1-2 años',
+            '2-3 años',
+        ];
+        foreach ($rangos as $key => $value) {
+            ModelsAuxiliary::create([
+                'type'=>1,
+                'id'=>$key+1,
+                'value'=>$value
+            ]);
+        }
         // Agrega los sexos
-        ModelsAuxiliary::create([
-            'type'=>2,
-            'id'=>1,
-            'value'=>'Hombre'
-        ]);
-        ModelsAuxiliary::create([
-            'type'=>2,
-            'id'=>2,
-            'value'=>'Mujer'
-        ]);
+        $sexos = ['Hombre','Mujer'];
+        foreach ($sexos as $key => $value) {
+            ModelsAuxiliary::create([
+                'type'=>2,
+                'id'=>$key+1,
+                'value'=>$value
+            ]);
+        }
+
+        // Alergenos
+        $alergenos =[
+            'Pescado',
+            'Frutos secos',
+            'Lácteos',
+            'Moluscos',
+            'Cereales con gluten',
+            ' Crustáceos',
+            'Huevo',
+            'Cacahuetes',
+            'Soja',
+            'Apio',
+            'Mostaza',
+            'Sésamo',
+            'Altramuz',
+            'Sulfitos'
+        ];
+        foreach ($alergenos as $key => $value) {
+            ModelsAuxiliary::create([
+                'type'=>3,
+                'id'=>$key+1,
+                'value'=>$value
+            ]);
+        }
+
     }
 }

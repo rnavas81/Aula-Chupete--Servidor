@@ -37,4 +37,8 @@ class Aula extends Model
     {
         return $this->hasMany(Diario::class,'idAula','id')->where('date',$date);
     }
+    public function dietarios()
+    {
+        return $this->hasMany(Dietario::class,'idAula','id');
+    }
 }

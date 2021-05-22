@@ -4,6 +4,7 @@ use App\Http\Controllers\Alumnos;
 use App\Http\Controllers\Aulas;
 use App\Http\Controllers\Authentication;
 use App\Http\Controllers\Auxiliaries;
+use App\Http\Controllers\Menus;
 use App\Http\Controllers\Users;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +84,14 @@ Route::group([], function () {
         Route::post('/aula/{idAula}/alumno/{idAlumno}',[Aulas::class,'addAlumno']);
         // Quita un alumno de un aula
         Route::delete('/aula/{idAula}/alumno/{idAlumno}',[Aulas::class,'removeAlumno']);
+        // Recupera el dietario de un aula para un dia
+        Route::get('/aula/{idAula}/dietario/{fecha}',[Aulas::class,'getDietarioDia']);
+        // Recupera el dietario de un aula para la semana
+        Route::get('/aula/{idAula}/dietario/semana/{fecha}',[Aulas::class,'getDietarioSemana']);
+        // Recupera el dietario de un aula
+        Route::post('/aula/{idAula}/dietario/comida',[Aulas::class,'setDietarioComida']);
+        // Asigna los platos de un menú a una semana del dietario del aula
+        Route::post('/aula/{idAula}/dietario/menu',[Aulas::class,'setMenu']);
 
         // Recupera todas las aulas
         Route::get('/alumno', [Alumnos::class, 'getAll']);
@@ -103,9 +112,19 @@ Route::group([], function () {
         // Recupera las aulas de un alumno
         Route::get('/alumno/{idAlumno}/aulas', [Alumnos::class, 'getAulas']);
 
+        /** MENUS */
+        // Recupera los menús
+        Route::get('/menu', [Menus::class, 'get']);
+        // Recupera los dias del menú
+        Route::get('/menu/{idMenu}/dias', [Menus::class, 'getDias']);
+        // Crea un nuevo menu
+        Route::post('/menu', [Menus::class, 'insert']);
+
+
         /** AUXILIAR */
         Route::get('/auxiliar/ageRange',[Auxiliaries::class,'getAgeRange']);
         Route::get('/auxiliar/genders',[Auxiliaries::class,'getGenders']);
+        Route::get('/auxiliar/allergens',[Auxiliaries::class,'getAllergens']);
 
     });
 });

@@ -121,7 +121,8 @@ class Alumnos extends Controller
             $entrada = Diario_Entrada::where('idDiario',$diario['id'])
                 ->where('idAlumno',$idAlumno)
                 ->first();
-            $diario['entrada']=$entrada?$entrada->toArray():null;
+            if($entrada)$diario['entrada']=$entrada?$entrada->toArray():null;
+            else $diario['entrada']=[];
 
         }
         return response()->json($diario,200);
