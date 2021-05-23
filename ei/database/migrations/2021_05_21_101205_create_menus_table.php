@@ -15,6 +15,7 @@ class CreateMenusTable extends Migration
     {
         Schema::create('menus', function (Blueprint $table) {
             $table->id();
+            $table->timestamps();
             $table->tinyInteger('active')->default(1);
             $table->string('name');
             $table->integer('owner');

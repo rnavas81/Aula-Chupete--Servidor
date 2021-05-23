@@ -115,10 +115,14 @@ Route::group([], function () {
         /** MENUS */
         // Recupera los menús
         Route::get('/menu', [Menus::class, 'get']);
+        // Recupera los menús
+        Route::get('/menu/{idMenu}', [Menus::class, 'get']);
         // Recupera los dias del menú
         Route::get('/menu/{idMenu}/dias', [Menus::class, 'getDias']);
         // Crea un nuevo menu
         Route::post('/menu', [Menus::class, 'insert']);
+        Route::put('/menu/{idMenu}', [Menus::class, 'update']);
+        Route::delete('/menu/{idMenu}', [Menus::class, 'delete']);
 
 
         /** AUXILIAR */

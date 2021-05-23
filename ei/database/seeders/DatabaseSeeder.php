@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
                 $padres[] = [$padre, $padre1];
             }
             for ($n = 1; $n < 7; $n++) {
-                if($n==1 || $n==5){
+                if ($n == 1 || $n == 5) {
                     $posicion = 0;
                     $alumnos = [];
                     for ($i = 0; $i < 6; $i++) {
@@ -67,28 +67,28 @@ class DatabaseSeeder extends Seeder
                         $padre2 = $padres[$posicion][1];
                         $lastnames = $padre1->lastname . " " . $padre2->lastname;
                         // Crea el alumno
-                        $birthday = $fak->dateTimeBetween('2018-1-1','2018-12-31');
+                        $birthday = $fak->dateTimeBetween('2018-1-1', '2018-12-31');
                         $alumno = $this->crearAlumno($user->id, $birthday, $fak, $lastnames);
                         $alumnos[] = $alumno->id;
                         $this->relacionAlumnoPadre($padre1, $alumno->id);
                         $this->relacionAlumnoPadre($padre2, $alumno->id);
-                        if($posicion==count($padres))$posicion=0;
-                        else $posicion+=1;
+                        if ($posicion == count($padres)) $posicion = 0;
+                        else $posicion += 1;
                     }
                 }
                 // Crea aulas para el educador de prueba
                 $aula = $this->crearAula($user->id, $n, $fak, $n == 1);
                 foreach ($alumnos as $idAlumno) {
-                    $this->relacionAlumnoAula($aula->id,$idAlumno);
+                    $this->relacionAlumnoAula($aula->id, $idAlumno);
                 }
                 // Crea diarios para el aula
                 $this->crearDiario($aula, $alumnos, $fak);
-                // Crea Menús
-                for ($i = 0; $i < 4; $i++) {
-                    $this->crearMenu('Menú ' . $i, $user);
-                }
                 // Crea Dietarios
                 $this->crearDietario($aula);
+            }
+            // Crea Menús
+            for ($i = 0; $i < 4; $i++) {
+                $this->crearMenu('Menú ' . $i, $user);
             }
 
             ///////////////////////////////////////////
@@ -106,9 +106,9 @@ class DatabaseSeeder extends Seeder
                     $padre2 = $this->crearPadre($user->id, $fak);
                     $lastnames = $padre1->lastname . " " . $padre2->lastname;
                     // Crea el alumno
-                    $birthday = $fak->dateTimeBetween($aula->year.'-1-1',$aula->year.'-12-31');
+                    $birthday = $fak->dateTimeBetween($aula->year . '-1-1', $aula->year . '-12-31');
                     $alumno = $this->crearAlumno($user->id, $birthday, $fak, $lastnames);
-                    $this->relacionAlumnoAula($aula->id,$alumno->id);
+                    $this->relacionAlumnoAula($aula->id, $alumno->id);
                     $alumnos[] = $alumno->id;
                     $this->relacionAlumnoPadre($padre1, $alumno->id);
                     $this->relacionAlumnoPadre($padre2, $alumno->id);
@@ -152,15 +152,16 @@ class DatabaseSeeder extends Seeder
         return $user;
     }
     // Crea el aula
-    private function crearAula($idUser, $curso, $fak, $default = false)
+    private function crearAula($idUser, $n, $fak, $default = false)
     {
-        $curso = 2021 - $curso;
+        $curso = 2021 - $n;
+        $rango = $n % 4 == 0 ? 4 : $n % 4;
         $aula = \App\Models\Aula::create([
             'default' => $default ? 1 : 0,
             'idUser' => $idUser,
             'name' => 'Aula ' . $curso,
             'year' => $curso,
-            'age_range' => 2020 - $curso
+            'age_range' => $rango,
         ]);
         return $aula;
     }
@@ -179,7 +180,7 @@ class DatabaseSeeder extends Seeder
         ]);
         return $alumno;
     }
-    public function relacionAlumnoAula($idAula,$idAlumno)
+    public function relacionAlumnoAula($idAula, $idAlumno)
     {
         // Crea la relación con el aula
         \App\Models\Aula_Alumno::create([
@@ -229,8 +230,8 @@ class DatabaseSeeder extends Seeder
     {
         $year = intval($aula->year);
         $fecha = new DateTime("$year-09-01");
-        $fecha_fin = new DateTime(($year+1)."-08-1");
-        if($fecha_fin>new DateTime())$fecha_fin=new DateTime();
+        $fecha_fin = new DateTime(($year + 1) . "-08-1");
+        if ($fecha_fin > new DateTime()) $fecha_fin = new DateTime();
         while ($fecha < $fecha_fin) {
             if ($fecha->format('N') < 6) {
                 $diario = Diario::create([
@@ -272,9 +273,9 @@ class DatabaseSeeder extends Seeder
         $faker->addProvider(new \FakerRestaurant\Provider\es_PE\Restaurant($faker));
         $year = intval($aula->year);
         $fecha = new DateTime("$year-09-01");
-        $fecha_fin = new DateTime(($year+1)."-08-1");
-        if($fecha_fin>new DateTime())$fecha_fin=new DateTime();
-        while ($fecha < $fecha_fin) {
+        $fecha_fin = new DateTime(($year + 1) . "-08-1");
+        if ($fecha_fin > new DateTime()) $fecha_fin = new DateTime();
+        while ($fecha <= $fecha_fin) {
             if ($fecha->format('N') < 6) {
                 $a1 =  [];
                 while (count($a1) < 3) {

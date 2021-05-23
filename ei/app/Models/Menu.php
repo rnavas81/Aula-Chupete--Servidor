@@ -8,14 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class Menu extends Model
 {
     use HasFactory;
-    public $timestamps = false;
     protected $fillable = [
         'name',
         'owner',
         'active',
     ];
     protected $hidden = [
-        'owner'
+        'active',
+        'owner',
+        'updated_at',
+        'created_at',
     ];
     public function dias()
     {

@@ -11,9 +11,10 @@ use Illuminate\Support\Facades\DB;
 class Menus extends Controller
 {
     // Llamadas por url
-    public function get()
+    public function get($idMenu = null)
     {
-        $menus = $this->getDB();
+        if (!$idMenu) $menus = $this->getDB();
+        else $menus = $this->getDB(['dias'], ['id' => $idMenu], 1);
         return response()->json($menus, 200);
     }
 
@@ -36,6 +37,27 @@ class Menus extends Controller
         $menu = $this->insertDB($data, $dias);
         return $menu;
     }
+    public function update(Request $request, $idMenu)
+    {
+        $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+        ]);
+        $data = [
+            'name' => $request['name'],
+            'owner' => auth()->user()->id,
+        ];
+        $dias = $request['dias'] ?: null;
+        $menu = $this->updateDB($idMenu, $data, $dias);
+        return $menu;
+    }
+    public function delete($idMenu)
+    {
+        if ($this->deleteDB($idMenu)) {
+            return response()->noContent(200);
+        } else {
+            return response()->noContent(406);
+        }
+    }
 
 
     // Funciones para la persistencia de datos
@@ -49,13 +71,13 @@ class Menus extends Controller
             $items = $items->where('active', 1);
         }
         if (array_key_exists('id', $where)) $items = $items->where('id', $where['id']);
-
+        $items = $items->orderBy('updated_at','DESC')->orderBy('created_at','DESC');
         if ($take === false) {
             $items = $items->get();
         } elseif ($take == 1) {
             $items = $items->first();
         } else {
-            $items = $items->take($take)->get()->toArray();
+            $items = $items->take($take)->get();
         }
         if (!!$items) {
             if (in_array('dias', $with)) {
@@ -88,21 +110,69 @@ class Menus extends Controller
         try {
             DB::beginTransaction();
             $menu = Menu::create($data);
-            $menu = $menu->toArray();
-            $menu['dias'] = [];
+            if($menu){
+                $menu = $menu->toArray();
+                $idMenu = $menu['id'];
+                $menu['dias'] = [];
+                foreach ($dias as $dia) {
+                    $dia = $this->insertDiaDB($menu['id'], $dia);
+                    if (strlen($dia->breakfast_allergens) > 0) $dia->breakfast_allergens = explode(',', $dia->breakfast_allergens);
+                    else $dia->breakfast_allergens = [];
+                    if (strlen($dia->lunch_allergens) > 0) $dia->lunch_allergens = explode(',', $dia->lunch_allergens);
+                    else $dia->lunch_allergens = [];
+                    if (strlen($dia->desert_allergens) > 0) $dia->desert_allergens = explode(',', $dia->desert_allergens);
+                    else $dia->desert_allergens = [];
+                    $menu['dias'][] = $dia;
+                }
+                DB::commit();
+                return $menu;
+            }
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            throw new Exception($th->getMessage(), 1);
+        }
+    }
+    public function updateDB($idMenu, $data, $dias)
+    {
+        try {
+            DB::beginTransaction();
+            $updated = Menu::where('id', $idMenu)->where('owner', auth()->user()->id)
+                ->update($data);
             foreach ($dias as $dia) {
-                $dia['idMenu'] = $menu['id'];
-                if (isset($dia['breakfast_allergens'])) $dia['breakfast_allergens'] = implode(',',$dia['breakfast_allergens']);
-                if (isset($dia['lunch_allergens'])) $dia['lunch_allergens'] = implode(',',$dia['lunch_allergens']);
-                if (isset($dia['desert_allergens'])) $dia['desert_allergens'] = implode(',',$dia['desert_allergens']);
-                $dia = Menu_Dia::create($dia);
-                $menu['dias'][] = $dia;
+                $dia = $this->updateDiaDB($idMenu, $dia);
             }
             DB::commit();
         } catch (\Throwable $th) {
             DB::rollBack();
             throw new Exception($th->getMessage(), 1);
         }
-        return $menu;
+        return $this->getDB(['dias'], ['id', $idMenu], 1);
+    }
+    public function insertDiaDB($idMenu, $dia)
+    {
+        $dia['idMenu'] = $idMenu;
+        if (isset($dia['breakfast_allergens'])) $dia['breakfast_allergens'] = implode(',', $dia['breakfast_allergens']);
+        if (isset($dia['lunch_allergens'])) $dia['lunch_allergens'] = implode(',', $dia['lunch_allergens']);
+        if (isset($dia['desert_allergens'])) $dia['desert_allergens'] = implode(',', $dia['desert_allergens']);
+        $dia = Menu_Dia::create($dia);
+        return $dia;
+    }
+    public function updateDiaDB($idMenu, $dia)
+    {
+        if (isset($dia['breakfast_allergens'])) $dia['breakfast_allergens'] = implode(',', $dia['breakfast_allergens']);
+        if (isset($dia['lunch_allergens'])) $dia['lunch_allergens'] = implode(',', $dia['lunch_allergens']);
+        if (isset($dia['desert_allergens'])) $dia['desert_allergens'] = implode(',', $dia['desert_allergens']);
+        $updated = Menu_Dia::where('idMenu', $idMenu)->where('id', $dia['id'])->update($dia);
+        return $updated;
+    }
+
+    /**
+     * Elimina una entrada de la base de datos
+     */
+    public function deleteDB($id)
+    {
+        return Menu::where('id', $id)->where('owner', auth()->user()->id)->update([
+            'active' => 0
+        ]) == 1;
     }
 }
