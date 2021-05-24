@@ -17,6 +17,7 @@ Route::post('/login', [Authentication::class, 'login']);
 Route::post('/register', [Authentication::class, 'register']);
 Route::post('/forget', [Authentication::class, 'forget']);
 Route::get('/activate/{code}', [Authentication::class, 'activate']);
+Route::post('/message',[Users::class,'addMessage']);
 
 // TODO:Aplicar middleware y passport
 Route::group([], function () {

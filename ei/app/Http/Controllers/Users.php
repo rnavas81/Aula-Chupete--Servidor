@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\Aula_Alumno;
+use App\Models\Message;
 use App\Models\Padre_Alumno;
 use App\Models\User;
 use App\Models\User_Rol;
@@ -160,6 +161,19 @@ class Users extends Controller
             $alumnos[$key] = $alumno;
         }
         return response()->json($alumnos, 200);
+    }
+
+    public function addMessage(Request $request)
+    {
+        $request->validate([
+            'message'     => ['required', 'string', 'max:255'],
+        ]);
+        $data = [
+            'message' => $request['message'],
+            'user' => $request->user('api') !== null ? $request->user('api')->id: 0,
+        ];
+        Message::create($data);
+        return response()->noContent(200);
     }
 
     /** FUNCIONES PARA LA PERSISTENCIA DE DATOS */
