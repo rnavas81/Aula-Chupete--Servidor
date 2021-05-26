@@ -95,7 +95,7 @@ class Authentication extends Controller
     public function forget(Request $request)
     {
         $data = $request->validate([
-            'email'    => ['required', 'email', 'unique:users', 'max:255'],
+            'email'    => ['required', 'email', 'max:255'],
         ]);
 
         $user = User::where('email', $data['email'])->first();
