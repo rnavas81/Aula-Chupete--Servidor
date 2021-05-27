@@ -19,6 +19,10 @@ Route::post('/forget', [Authentication::class, 'forget']);
 Route::get('/activate/{code}', [Authentication::class, 'activate']);
 Route::post('/message',[Users::class,'addMessage']);
 
+// TODO:quitar de aqui
+
+// TODO:quitar hasta aqui
+
 // TODO:Aplicar middleware y passport
 Route::group([], function () {
     Route::group([
@@ -60,20 +64,19 @@ Route::group([], function () {
 
 
         /** AULAS */
-
-        // Recupera todas las aulas
+        // // Recupera todas las aulas
         Route::get('/aula', [Aulas::class, 'getAll']);
-        // Recupera los datos de un usuario
+        // Recupera los datos de un aula
         Route::get('/aula/{id}', [Aulas::class, 'get']);
-        // Nueva usuario
+        // Nueva aula
         Route::post('/aula', [Aulas::class, 'insert']);
-        // Actualiza un usuario
+        // Actualiza un aula
         Route::put('/aula/{id}', [Aulas::class, 'update']);
-        // Elimina un usuario
+        // Elimina un aula
         Route::delete('/aula/{id}', [Aulas::class, 'delete']);
         // Recupera los alumnos de un aula
         Route::get('/aula/alumnos/{id}',[Aulas::class,'getAlumnos']);
-        // Recupera los alumnos de un aula
+        // Asigna un aula como activa
         Route::put('/aula/default/{id}',[Aulas::class,'setDefault']);
         //Recupera las faltas de una aula en un día
         Route::get('/aula/{id}/faltas/{fecha}',[Aulas::class,'getFaltas']);

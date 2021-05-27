@@ -43,7 +43,7 @@ class Aulas extends Controller
             $data['idUser'] = auth()->user()->id;
             $nuevo = $this->insertDB($data);
             if ($nuevo) {
-                if ($data['default'] == 1) {
+                if (isset($data['default']) && $data['default'] === 1) {
                     Aula::where('id', '!=', $nuevo->id)
                         ->update(['default' => 0]);
                 }
@@ -65,8 +65,8 @@ class Aulas extends Controller
             DB::beginTransaction();
             $data = $this->getRequestData($request);
             if ($this->updateDB($id, $data)) {
-                if ($data['default'] == 1) {
-                    Aula::where('id', '!=', $id)
+                if (isset($data['default']) && $data['default'] === 1) {
+                    Aula::where('id', '<>', $id)
                         ->update(['default' => 0]);
                 }
                 $alumnos = isset($request['alumnos']) ? $request['alumnos'] : [];
@@ -109,12 +109,15 @@ class Aulas extends Controller
     }
     public function getFaltas(Request $request, $id, $fecha)
     {
-        $diario = Diario::with('entradas')->where('idAula', $id)->where('date', $fecha)->first()->toArray();
+        $diario = Diario::with('entradas')->where('idAula', $id)->where('date', $fecha)->first();
         $ids = [];
-        foreach ($diario['entradas'] as $entrada) {
-            if ($entrada['absence'] == 1) $ids[] = $entrada['idAlumno'];
+        if ($diario) {
+            $diario = $diario->toArray();
+            foreach ($diario['entradas'] as $entrada) {
+                if ($entrada['absence'] == 1) $ids[] = $entrada['idAlumno'];
+            }
+            return response()->json($ids, 200);
         }
-        return response()->json($ids, 200);
     }
     public function getDiario($id, $fecha)
     {
