@@ -37,6 +37,8 @@ Si en la máquina donde va a ejecutar la aplicación tiene instalado git puede e
 
 3. Situese dentro de la carpeta Aula-Chupetes--Servidor
 
+    *cd Aula-Chupetes--Servidor*
+
 4. Lance el comando para inicializar el contenedor docker
 
     *sudo docker-compose up -d*
