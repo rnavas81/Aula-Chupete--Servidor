@@ -77,6 +77,7 @@ Si en la máquina donde va a ejecutar la aplicación tiene instalado git puede e
         >Por defecto instalará los datos de prueba
     
     1. Cerrar la conexión con el contenedor
+    
         exit
   
 
