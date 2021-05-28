@@ -19,9 +19,10 @@ class Activar extends Mailable
     public $name;
     public $url;
 
-    public function __construct($name, $lastname, $url)
+    public function __construct($name, $lastname="", $url="")
     {
-        $this->name = $name . ' ' . $lastname;
+        $this->name = $name;
+        if(strlen($lastname)>0)$this->name.= ' ' . $lastname;
         $this->url = $url;
     }
 

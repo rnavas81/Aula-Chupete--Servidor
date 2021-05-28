@@ -48,9 +48,6 @@ Si en la máquina donde va a ejecutar la aplicación tiene instalado git puede e
     
         sudo docker exec -ti ei-server /bin/bash
 
-    1. Acceder a la carpeta del proyecto    
-          cd ei
-
     1. Conceder permisos a toda la aplicación   
         chmod 777 -R .
     

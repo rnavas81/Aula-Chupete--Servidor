@@ -26,21 +26,21 @@ class DatabaseSeeder extends Seeder
         // Agrega los roles
         $this->call(Roles::class);
         $this->call(SeedersAuxiliary::class);
+        // Usuario administrador
+        \App\Models\User::create([
+            'name' => 'admin',
+            'password' => bcrypt('admin'),
+            'email' => 'aula.chupetes@gmail.com',
+            'email_verified_at' => now(),
+            'activated' => 1,
+            'blocked' => 0,
+        ]);
+        \App\Models\User_Rol::create([
+            'idUser' => 1,
+            'idRol' => 1
+        ]);
         if (env('APP_ENV') === 'local') {
-            // Usuario administrador
             $fak = \Faker\Factory::create('es_ES');
-            \App\Models\User::create([
-                'name' => 'admin',
-                'password' => bcrypt('admin'),
-                'email' => 'aula.chupetes@gmail.com',
-                'email_verified_at' => now(),
-                'activated' => 1,
-                'blocked' => 0,
-            ]);
-            \App\Models\User_Rol::create([
-                'idUser' => 1,
-                'idRol' => 1
-            ]);
             // Educador para pruebas
             $user = $this->crearEducador([
                 'name' => 'Educador',

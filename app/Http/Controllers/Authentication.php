@@ -23,9 +23,8 @@ class Authentication extends Controller
         // TODO: Controlar el numero de intentos de acceso desde una ip
         $loginData = $request->validate([
             'email' => ['required', 'max:255'],
-            'password' => ['required', 'unique:users', 'max:255'],
+            'password' => ['required', 'max:255'],
         ]);
-
         if (!Auth::attempt($loginData)) {
             //return response(['message' => 'Login incorrecto. Revise las credenciales.'], 400);
             return response()->noContent(403);
@@ -45,43 +44,49 @@ class Authentication extends Controller
         $request->user()->token()->revoke();
         return response()->noContent(200);
     }
-    public function sendActivate($token, $email, $name, $lastname)
+    public function sendActivate($token, $email, $name, $lastname = '')
     {
-        $url = isset($_SERVER['HTTPS']) ? 'https://' : 'http://';
-        $url .= $_SERVER['SERVER_NAME'] . ($_SERVER['SERVER_PORT'] != 80 ? ':' . $_SERVER['SERVER_PORT'] : '') .  DIRECTORY_SEPARATOR . env('ACTVATE_URL') . DIRECTORY_SEPARATOR . $token;
-        Mail::to($email)->send(new Activar($name, $lastname, $url));
-        return !Mail::failures();
+        $url = env('APP_URL') .  DIRECTORY_SEPARATOR . env('ACTVATE_URL') . DIRECTORY_SEPARATOR . $token;
+        try {
+            Mail::to($email)->send(new Activar($name, $lastname, $url));
+            return !Mail::failures();
+        } catch (\Throwable $th) {
+            dd($th);
+        }
     }
     /**
      * Registrar un nuevo usuario
      */
     public function register(Request $request)
     {
-        try {
-            $request->validate([
-                'name'     => ['required', 'string', 'max:255'],
-                'lastname'  => ['string', 'max:255'],
-                'email'    => ['required', 'email', 'unique:users', 'max:255'],
-                'password' => ['required', 'string', 'min:8', 'max:32'],
-            ]);
+        $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'max:32'],
+            'lastname' => ['max:255'],
+        ]);
+        $data = app(Users::class)->getRequestData($request);
+        $data['activated_token'] = Str::random(128) . time();
 
-            $data = app(Users::class)->getRequestData($request);
-            $data['password'] = bcrypt($data['password']);
-            $data['activated_token'] = Str::random(128) . time();
+        if (!array_key_exists('lastname', $data)) $data['lastname'] = '';
+        try {
+            DB::beginTransaction();
             $nuevo = app(Users::class)->insertDB($data);
             if ($nuevo) {
                 app(Users::class)->addRol($nuevo->id, 'teacher');
-
-                if ($this->sendActivate($data['activated_token'], $nuevo->email, $nuevo->name, $nuevo->lastname)) return response()->noContent(201);
-                else throw new Exception("Error al mandar mail", 1);
+                $sendMail = $this->sendActivate($data['activated_token'], $nuevo->email, $nuevo->name, $nuevo->lastname);
+                if ($sendMail) {
+                    DB::commit();
+                    return response()->noContent(201);
+                } else {
+                    return response()->json($sendMail, 505);
+                    DB::rollBack();
+                    throw new Exception('Error al mandar mail', 1);
+                }
             }
-
-            DB::beginTransaction();
-
-            DB::commit();
         } catch (\Throwable $th) {
             DB::rollBack();
-            return response($th->getMessage(), 500);
+            return response()->json($th, 500);
         }
     }
     /**
