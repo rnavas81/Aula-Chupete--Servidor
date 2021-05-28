@@ -9,7 +9,9 @@ use App\Http\Controllers\Mail\Activar;
 use App\Http\Controllers\Mail\Recuperar;
 use App\Models\User;
 use App\Models\User_Rol;
+use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Authentication extends Controller
 {
@@ -55,22 +57,32 @@ class Authentication extends Controller
      */
     public function register(Request $request)
     {
-        $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'lastname'  => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'unique:users', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'max:32'],
-        ]);
+        try {
+            $request->validate([
+                'name'     => ['required', 'string', 'max:255'],
+                'lastname'  => ['string', 'max:255'],
+                'email'    => ['required', 'email', 'unique:users', 'max:255'],
+                'password' => ['required', 'string', 'min:8', 'max:32'],
+            ]);
 
-        $data = app(Users::class)->getRequestData($request);
-        $data['password'] = bcrypt($data['password']);
-        $data['activated_token'] = Str::random(128) . time();
-        $nuevo = app(Users::class)->insertDB($data);
-        app(Users::class)->addRol($nuevo->id, 'teacher');
+            $data = app(Users::class)->getRequestData($request);
+            $data['password'] = bcrypt($data['password']);
+            $data['activated_token'] = Str::random(128) . time();
+            $nuevo = app(Users::class)->insertDB($data);
+            if ($nuevo) {
+                app(Users::class)->addRol($nuevo->id, 'teacher');
 
-        return response()->noContent(
-            $this->sendActivate($data['activated_token'], $nuevo->email, $nuevo->name, $nuevo->lastname) ? 201 : 500
-        );
+                if ($this->sendActivate($data['activated_token'], $nuevo->email, $nuevo->name, $nuevo->lastname)) return response()->noContent(201);
+                else throw new Exception("Error al mandar mail", 1);
+            }
+
+            DB::beginTransaction();
+
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response($th->getMessage(), 500);
+        }
     }
     /**
      * Activa un usuario
